@@ -47,12 +47,12 @@ import streamlit as st
 # Force headless mode for OpenCV before anything else imports it
 os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
 
-try:
-    import groundingdino
-except ImportError:
-    print("Installing GroundingDINO...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", 
-        "git+https://github.com/IDEA-Research/GroundingDINO.git"])
+# try:
+#     import groundingdino
+# except ImportError:
+#     print("Installing GroundingDINO...")
+#     subprocess.check_call([sys.executable, "-m", "pip", "install", 
+#         "git+https://github.com/IDEA-Research/GroundingDINO.git"])
 
 def download_weights():
     # Path for SAM 2
