@@ -49,7 +49,7 @@ def download_weights():
     # Path for SAM 2
     if not os.path.exists("checkpoints/sam2_hiera_small.pt"):
         os.makedirs("checkpoints", exist_ok=True)
-        url = "https://dl.fbaipublicfiles.com"
+        url = "https://dl.fbaipublicfiles.com/segment_anything_2/072824/sam2_hiera_small.pt"
         torch.hub.download_url_to_file(url, "checkpoints/sam2_hiera_small.pt")
 
     # Path for GroundingDINO
