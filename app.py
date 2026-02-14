@@ -42,17 +42,17 @@ from enum import Enum
 
 
 import os
-import torch
+import torch, sys, subprocess
 import streamlit as st
 # Force headless mode for OpenCV before anything else imports it
 os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
 
 try:
-    from groundingdino.util.inference import load_model
-    GROUNDING_AVAILABLE = True
+    import groundingdino
 except ImportError:
-    GROUNDING_AVAILABLE = False
-    print("GroundingDINO not available on this deployment")
+    print("Installing GroundingDINO...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", 
+        "git+https://github.com/IDEA-Research/GroundingDINO.git"])
 
 def download_weights():
     # Path for SAM 2
