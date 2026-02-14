@@ -54,7 +54,7 @@ def download_weights():
 
     # Path for GroundingDINO
     if not os.path.exists("checkpoints/groundingdino_swint_ogc.pth"):
-        url = "https://github.com"
+        url = "https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth"
         torch.hub.download_url_to_file(url, "checkpoints/groundingdino_swint_ogc.pth")
 
 download_weights()
