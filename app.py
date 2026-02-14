@@ -23,7 +23,6 @@ BASE_DIR = Path.cwd()
 load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
 
 
-
 DB_PATH = BASE_DIR / "stinkbug.db"
 MODEL_PATH = BASE_DIR / "yolov8m_cbam_asff_finetuned.pt"
 THRESHOLD_PER_100 = 16
@@ -37,28 +36,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from enum import Enum
-
-
-import os
-import torch, sys, subprocess
-import streamlit as st
-# Force headless mode for OpenCV before anything else imports it
-os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
-
-
-def download_weights():
-    # Path for SAM 2
-    if not os.path.exists("checkpoints/sam2_hiera_small.pt"):
-        os.makedirs("checkpoints", exist_ok=True)
-        url = "https://dl.fbaipublicfiles.com/segment_anything_2/072824/sam2_hiera_small.pt"
-        torch.hub.download_url_to_file(url, "checkpoints/sam2_hiera_small.pt")
-
-    # Path for GroundingDINO
-    if not os.path.exists("checkpoints/groundingdino_swint_ogc.pth"):
-        url = "https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth"
-        torch.hub.download_url_to_file(url, "checkpoints/groundingdino_swint_ogc.pth")
-
-download_weights()
 
 
 class ToolStatus(Enum):
@@ -1458,9 +1435,19 @@ def load_model() -> YOLO:
     return YOLO(str(MODEL_PATH))
 
 # GroundingDINO helpers (lazy import)
+# Check if GroundingDINO is available
+try:
+    from groundingdino.util.inference import load_model as _gd_test_import
+    GROUNDING_DINO_AVAILABLE = True
+except ImportError:
+    GROUNDING_DINO_AVAILABLE = False
+    print("⚠️ GroundingDINO not available (normal on Streamlit Cloud)")
+
 @st.cache_resource
 def load_grounding_dino():
     """Load GroundingDINO model with weights."""
+    if not GROUNDING_DINO_AVAILABLE:
+        return None
     try:
         from groundingdino.util.inference import load_model
         import torch
@@ -1519,6 +1506,14 @@ def load_grounding_dino():
         return None
 
 def get_grounding_status():
+    # Check if GroundingDINO is available at all
+    if not GROUNDING_DINO_AVAILABLE:
+        return {
+            "available": False,
+            "error": "GroundingDINO not installed on this deployment",
+            "device": None
+        }
+    
     # Check if already loaded
     if "groundingdino_model" not in st.session_state:
         model = load_grounding_dino()
