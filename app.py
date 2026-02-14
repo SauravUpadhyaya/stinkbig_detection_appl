@@ -39,6 +39,27 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 
+
+
+import os
+import torch
+import streamlit as st
+
+def download_weights():
+    # Path for SAM 2
+    if not os.path.exists("checkpoints/sam2_hiera_small.pt"):
+        os.makedirs("checkpoints", exist_ok=True)
+        url = "https://dl.fbaipublicfiles.com"
+        torch.hub.download_url_to_file(url, "checkpoints/sam2_hiera_small.pt")
+
+    # Path for GroundingDINO
+    if not os.path.exists("checkpoints/groundingdino_swint_ogc.pth"):
+        url = "https://github.com"
+        torch.hub.download_url_to_file(url, "checkpoints/groundingdino_swint_ogc.pth")
+
+download_weights()
+
+
 class ToolStatus(Enum):
     """Status of tool execution"""
     SUCCESS = "success"
