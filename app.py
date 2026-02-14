@@ -47,6 +47,13 @@ import streamlit as st
 # Force headless mode for OpenCV before anything else imports it
 os.environ["OPENCV_VIDEOIO_PRIORITY_MSMF"] = "0"
 
+try:
+    from groundingdino.util.inference import load_model
+    GROUNDING_AVAILABLE = True
+except ImportError:
+    GROUNDING_AVAILABLE = False
+    print("GroundingDINO not available on this deployment")
+
 def download_weights():
     # Path for SAM 2
     if not os.path.exists("checkpoints/sam2_hiera_small.pt"):
