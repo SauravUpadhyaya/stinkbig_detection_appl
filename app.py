@@ -4,8 +4,8 @@ import sqlite3
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from pathlib import Path
-import re 
-
+import re
+import torch
 import numpy as np
 import pandas as pd
 import smtplib
@@ -28,6 +28,24 @@ MODEL_PATH = BASE_DIR / "yolov8m_cbam_asff_finetuned.pt"
 THRESHOLD_PER_100 = 16
 MIN_IMAGES_FOR_ALERT = 100
 MAX_GALLERY_ITEMS = 20
+
+
+def download_weights():
+    # Path for SAM 2
+    if not os.path.exists("checkpoints/sam2_hiera_small.pt"):
+        os.makedirs("checkpoints", exist_ok=True)
+        url = "https://dl.fbaipublicfiles.com/segment_anything_2/072824/sam2_hiera_small.pt"
+        torch.hub.download_url_to_file(url, "checkpoints/sam2_hiera_small.pt")
+
+    # # Path for GroundingDINO
+    # if not os.path.exists("checkpoints/groundingdino_swint_ogc.pth"):
+    #     url = "https://github.com"
+    #     torch.hub.download_url_to_file(url, "checkpoints/groundingdino_swint_ogc.pth")
+
+download_weights()
+
+
+
 
 
 import json
