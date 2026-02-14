@@ -54,10 +54,10 @@ def download_weights():
         url = "https://dl.fbaipublicfiles.com/segment_anything_2/072824/sam2_hiera_small.pt"
         torch.hub.download_url_to_file(url, "checkpoints/sam2_hiera_small.pt")
 
-    # # Path for GroundingDINO
-    # if not os.path.exists("checkpoints/groundingdino_swint_ogc.pth"):
-    #     url = "https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth"
-    #     torch.hub.download_url_to_file(url, "checkpoints/groundingdino_swint_ogc.pth")
+    # Path for GroundingDINO
+    if not os.path.exists("checkpoints/groundingdino_swint_ogc.pth"):
+        url = "https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth"
+        torch.hub.download_url_to_file(url, "checkpoints/groundingdino_swint_ogc.pth")
 
 download_weights()
 
