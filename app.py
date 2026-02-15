@@ -2026,7 +2026,7 @@ def ensure_session_defaults():
 
 
 def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
-    """Unified chat function that works with both Ollama and Groq"""
+    """Unified chat function that works with both Ollama and Groq with fallback models"""
     client = st.session_state.get("ollama_client")
     backend = st.session_state.get("chat_backend", "ollama")
     
@@ -2036,14 +2036,36 @@ def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
     
     try:
         if backend == "groq":
-            # Groq API call - using Llama 3.1 70B (mistral not available on Groq)
-            print(f"🔵 Calling Groq with llama-3.1-70b-versatile")
-            response = client.chat.completions.create(
-                model="llama-3.1-70b-versatile",  # Best available model on Groq (Mistral not available)
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
+            # Try multiple Groq models in case one is deprecated
+            groq_models = [
+                "llama-3.2-70b-versatile",      # Latest LLama 3.2
+                "llama-3.2-11b-vision-preview",  # Smaller but fast
+                "gemma2-9b-it",                  # Google's Gemma 2
+                "gemma-7b-it"                    # Smaller Gemma
+            ]
+            
+            response = None
+            last_error = None
+            
+            for groq_model in groq_models:
+                try:
+                    print(f"🔵 Trying Groq model: {groq_model}")
+                    response = client.chat.completions.create(
+                        model=groq_model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens
+                    )
+                    print(f"✅ Success with {groq_model}")
+                    break
+                except Exception as e:
+                    last_error = e
+                    print(f"⚠️ {groq_model} failed: {str(e)[:100]}")
+                    continue
+            
+            if not response:
+                raise Exception(f"All Groq models failed. Last error: {last_error}")
+            
             content = response.choices[0].message.content
             print(f"✅ Groq response: {len(content)} chars")
             return content
