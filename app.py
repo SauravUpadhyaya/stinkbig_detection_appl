@@ -1930,17 +1930,22 @@ def ensure_session_defaults():
             try:
                 st.session_state["ollama_client"] = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 st.session_state["chat_backend"] = "groq"
+                print(f"\u2705 Groq initialized successfully")
             except Exception as e:
-                print(f"Groq init failed: {e}")
+                print(f"\u274c Groq init failed: {type(e).__name__}: {e}")
+                st.session_state["ollama_client"] = None
         # Fall back to Ollama (for local development)
         elif OLLAMA_AVAILABLE:
             try:
                 from ollama import Client
                 st.session_state["ollama_client"] = Client(host='http://localhost:11434')
                 st.session_state["chat_backend"] = "ollama"
+                print(f"\u2705 Ollama initialized successfully")
             except Exception as e:
-                print(f"Ollama init failed: {e}")
+                print(f"\u274c Ollama init failed: {type(e).__name__}: {e}")
                 st.session_state["ollama_client"] = None
+        else:
+            print(f"\u26a0\ufe0f No chat backend available - GROQ_AVAILABLE={GROQ_AVAILABLE}, GROQ_API_KEY={'present' if 'GROQ_API_KEY' in st.secrets else 'missing'}, OLLAMA_AVAILABLE={OLLAMA_AVAILABLE}")
 
 
 def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
@@ -1949,28 +1954,37 @@ def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
     backend = st.session_state.get("chat_backend", "ollama")
     
     if not client:
+        print(f"❌ No chat client available")
         return None
     
     try:
         if backend == "groq":
-            # Groq API call - using current supported model (mixtral-8x7b-32768 is deprecated)
+            # Groq API call - using Mistral for consistency with local Ollama
+            print(f"🔵 Calling Groq with mistral-large")
             response = client.chat.completions.create(
-                model="llama-3.1-70b-versatile",  # Current supported Groq model (similar to Mistral)
+                model="mistral-large",  # Mistral Large on Groq (matches local Ollama Mistral)
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            print(f"✅ Groq response: {len(content)} chars")
+            return content
         else:
             # Ollama API call
+            print(f"🟢 Calling Ollama with {model}")
             response = client.chat(
                 model=model,
                 messages=messages,
                 options={"temperature": temperature, "num_predict": max_tokens}
             )
-            return response['message']['content']
+            content = response['message']['content']
+            print(f"✅ Ollama response: {len(content)} chars")
+            return content
     except Exception as e:
-        print(f"Chat completion error: {e}")
+        print(f"❌ Chat completion error ({backend}): {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
