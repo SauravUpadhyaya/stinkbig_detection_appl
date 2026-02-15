@@ -4495,36 +4495,36 @@ def render_chat_interface(location="main"):
         sam2_status = verifier.get_status()
         
         col1, col2, col3 = st.columns([0.33, 0.33, 0.34])
-        # with col1:
-        #     if sam2_status['available']:
-        #         use_sam2_chat = st.checkbox(
-        #             "SAM 2 Verification",
-        #             value=False,
-        #             key=f"sam2_chat_{location}",
-        #             help="Double-check counts"
-        #         )
-        #     else:
-        #         st.info("SAM 2 unavailable")
-        #         use_sam2_chat = False
+        with col1:
+            if sam2_status['available']:
+                use_sam2_chat = st.checkbox(
+                    "SAM 2 Verification",
+                    value=False,
+                    key=f"sam2_chat_{location}",
+                    help="Double-check counts"
+                )
+            else:
+                st.info("SAM 2 unavailable")
+                use_sam2_chat = False
 
-        # with col2:
-        #     ground_status_chat = get_grounding_status()
-        #     if ground_status_chat['available']:
-        #         text_filter_chat = st.checkbox(
-        #             "Text-prompt filter",
-        #             value=False,
-        #             key=f"text_filter_chat_{location}",
-        #             help="Filter with GroundingDINO"
-        #         )
-        #     else:
-        #         st.caption("GroundingDINO N/A")
-        #         text_filter_chat = False
+        with col2:
+            ground_status_chat = get_grounding_status()
+            if ground_status_chat['available']:
+                text_filter_chat = st.checkbox(
+                    "Text-prompt filter",
+                    value=False,
+                    key=f"text_filter_chat_{location}",
+                    help="Filter with GroundingDINO"
+                )
+            else:
+                st.caption("GroundingDINO N/A")
+                text_filter_chat = False
 
-        # with col3:
-        #     if text_filter_chat:
-        #         text_prompt_chat = st.text_input("Prompt", value="stinkbug", max_chars=60, key=f"text_prompt_chat_{location}")
-        #     else:
-        #         text_prompt_chat = ""
+        with col3:
+            if text_filter_chat:
+                text_prompt_chat = st.text_input("Prompt", value="stinkbug", max_chars=60, key=f"text_prompt_chat_{location}")
+            else:
+                text_prompt_chat = ""
 
         uploaded_image = st.file_uploader(
             "Upload image",
@@ -4537,9 +4537,9 @@ def render_chat_interface(location="main"):
                 image_bytes = uploaded_image.getvalue()
                 insect_count, annotated_bytes, metadata = count_insects(
                     image_bytes,
-                    # use_sam2_verification=use_sam2_chat,
-                    # text_filter_enabled=text_filter_chat,
-                    # text_prompt=text_prompt_chat,
+                    use_sam2_verification=use_sam2_chat,
+                    text_filter_enabled=text_filter_chat,
+                    text_prompt=text_prompt_chat,
                     iou_threshold=0.5
                 )
 
@@ -4554,11 +4554,11 @@ def render_chat_interface(location="main"):
                 # Display results
                 st.success(f"✓ **{insect_count} insects** detected")
                 
-                # col1, col2 = st.columns(2)
-                # with col1:
-                #     st.image(annotated_bytes, caption=f"Detected: {insect_count}", use_container_width=True)
-                # with col2:
-                #     st.image(image_bytes, caption="Original", use_container_width=True)
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.image(annotated_bytes, caption=f"Detected: {insect_count}", use_container_width=True)
+                with col2:
+                    st.image(image_bytes, caption="Original", use_container_width=True)
 
                 # Show SAM2 verification details if used
                 if metadata.get('verified'):
