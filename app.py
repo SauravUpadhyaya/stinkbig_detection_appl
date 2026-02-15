@@ -4496,35 +4496,38 @@ def render_chat_interface(location="main"):
         
         col1, col2, col3 = st.columns([0.33, 0.33, 0.34])
         with col1:
-            if sam2_status['available']:
-                use_sam2_chat = st.checkbox(
-                    "SAM 2 Verification",
-                    value=False,
-                    key=f"sam2_chat_{location}",
-                    help="Double-check counts"
-                )
-            else:
-                st.info("SAM 2 unavailable")
-                use_sam2_chat = False
+            # if sam2_status['available']:
+            #     use_sam2_chat = st.checkbox(
+            #         "SAM 2 Verification",
+            #         value=False,
+            #         key=f"sam2_chat_{location}",
+            #         help="Double-check counts"
+            #     )
+            # else:
+            #     st.info("SAM 2 unavailable")
+            #     use_sam2_chat = False
+            pass
 
         with col2:
-            ground_status_chat = get_grounding_status()
-            if ground_status_chat['available']:
-                text_filter_chat = st.checkbox(
-                    "Text-prompt filter",
-                    value=False,
-                    key=f"text_filter_chat_{location}",
-                    help="Filter with GroundingDINO"
-                )
-            else:
-                st.caption("GroundingDINO N/A")
-                text_filter_chat = False
+            # ground_status_chat = get_grounding_status()
+            # if ground_status_chat['available']:
+            #     text_filter_chat = st.checkbox(
+            #         "Text-prompt filter",
+            #         value=False,
+            #         key=f"text_filter_chat_{location}",
+            #         help="Filter with GroundingDINO"
+            #     )
+            # else:
+            #     st.caption("GroundingDINO N/A")
+            #     text_filter_chat = False
+            pass
 
         with col3:
-            if text_filter_chat:
-                text_prompt_chat = st.text_input("Prompt", value="stinkbug", max_chars=60, key=f"text_prompt_chat_{location}")
-            else:
-                text_prompt_chat = ""
+            # if text_filter_chat:
+            #     text_prompt_chat = st.text_input("Prompt", value="stinkbug", max_chars=60, key=f"text_prompt_chat_{location}")
+            # else:
+            #     text_prompt_chat = ""
+            pass
 
         uploaded_image = st.file_uploader(
             "Upload image",
