@@ -2849,81 +2849,81 @@ def render_capture():
     verifier = get_sam2_verifier()
     sam2_status = verifier.get_status()
 
-    # SAM 2 Verification Toggle (shows when approaching threshold)
-    with st.expander("Advanced Options", expanded=False):
-        # Show SAM 2 status
-        if sam2_status['available']:
-            st.success(f"SAM 2 loaded on {sam2_status['device']}")
-        else:
-            error_msg = sam2_status['error'] or "Unknown error"
-            st.warning(f"SAM 2 not available: {error_msg}")
-            st.info("App will use YOLO-only counting (still accurate!)")
+    # # SAM 2 Verification Toggle (shows when approaching threshold)
+    # with st.expander("Advanced Options", expanded=False):
+    #     # Show SAM 2 status
+    #     if sam2_status['available']:
+    #         st.success(f"SAM 2 loaded on {sam2_status['device']}")
+    #     else:
+    #         error_msg = sam2_status['error'] or "Unknown error"
+    #         st.warning(f"SAM 2 not available: {error_msg}")
+    #         st.info("App will use YOLO-only counting (still accurate!)")
 
-        use_sam2 = st.checkbox(
-            "Enable SAM 2 Verification (more accurate, slower)",
-            value=st.session_state.get("use_sam2_verification", False),
-            help="Activate SAM 2 to double-check YOLO boxes with instance segmentation for higher accuracy.",
-            key="sam2_toggle",
-            disabled=not sam2_status['available']
-        )
-        st.session_state["use_sam2_verification"] = use_sam2
+    #     use_sam2 = st.checkbox(
+    #         "Enable SAM 2 Verification (more accurate, slower)",
+    #         value=st.session_state.get("use_sam2_verification", False),
+    #         help="Activate SAM 2 to double-check YOLO boxes with instance segmentation for higher accuracy.",
+    #         key="sam2_toggle",
+    #         disabled=not sam2_status['available']
+    #     )
+    #     st.session_state["use_sam2_verification"] = use_sam2
 
-        if use_sam2 and sam2_status['available']:
-            st.info("🔬 SAM 2 verification active: YOLO detections will be validated with segmentation for higher accuracy.")
+    #     if use_sam2 and sam2_status['available']:
+    #         st.info("🔬 SAM 2 verification active: YOLO detections will be validated with segmentation for higher accuracy.")
 
-        # YOLO Confidence Threshold (pre-SAM2 filter)
-        st.divider()
-        st.markdown("**YOLO Detection Filter**")
-        yolo_conf_threshold = st.slider(
-            "YOLO confidence threshold (filters before SAM 2)",
-            min_value=0.3, max_value=0.95, value=float(st.session_state.get("yolo_conf_threshold", 0.5)), step=0.05,
-            help="Lower = more detections but possibly more false positives (e.g., leaves). Higher = fewer detections but higher quality.",
-            key="yolo_conf_slider"
-        )
-        st.session_state["yolo_conf_threshold"] = yolo_conf_threshold
-        st.caption(f"Boxes below {yolo_conf_threshold:.2f} confidence will be filtered OUT before SAM 2 sees them.")
+    #     # YOLO Confidence Threshold (pre-SAM2 filter)
+    #     st.divider()
+    #     st.markdown("**YOLO Detection Filter**")
+    #     yolo_conf_threshold = st.slider(
+    #         "YOLO confidence threshold (filters before SAM 2)",
+    #         min_value=0.3, max_value=0.95, value=float(st.session_state.get("yolo_conf_threshold", 0.5)), step=0.05,
+    #         help="Lower = more detections but possibly more false positives (e.g., leaves). Higher = fewer detections but higher quality.",
+    #         key="yolo_conf_slider"
+    #     )
+    #     st.session_state["yolo_conf_threshold"] = yolo_conf_threshold
+    #     st.caption(f"Boxes below {yolo_conf_threshold:.2f} confidence will be filtered OUT before SAM 2 sees them.")
 
-        # GroundingDINO text-prompt filtering
-        st.divider()
-        st.markdown("**Text-Prompt Filtering (GroundingDINO)**")
-        ground_status = get_grounding_status()
-        if ground_status['available']:
-            st.success(f"GroundingDINO loaded on {ground_status.get('device', 'unknown')}")
-        else:
-            if ground_status['error']:
-                st.warning(f"GroundingDINO unavailable: {ground_status['error']}")
-            else:
-                st.caption("Install GroundingDINO to enable text filtering.")
+    #     # GroundingDINO text-prompt filtering
+    #     st.divider()
+    #     st.markdown("**Text-Prompt Filtering (GroundingDINO)**")
+    #     ground_status = get_grounding_status()
+    #     if ground_status['available']:
+    #         st.success(f"GroundingDINO loaded on {ground_status.get('device', 'unknown')}")
+    #     else:
+    #         if ground_status['error']:
+    #             st.warning(f"GroundingDINO unavailable: {ground_status['error']}")
+    #         else:
+    #             st.caption("Install GroundingDINO to enable text filtering.")
 
-        text_filter_enabled = st.checkbox(
-            "Enable text-prompt filtering (GroundingDINO)",
-            value=st.session_state.get("text_filter_enabled", False),
-            help="Use GroundingDINO to detect regions matching text prompt. Works best for larger, well-defined objects.",
-            key="text_filter_toggle",
-            disabled=not ground_status['available']
-        )
-        st.session_state["text_filter_enabled"] = text_filter_enabled
+    #     text_filter_enabled = st.checkbox(
+    #         "Enable text-prompt filtering (GroundingDINO)",
+    #         value=st.session_state.get("text_filter_enabled", False),
+    #         help="Use GroundingDINO to detect regions matching text prompt. Works best for larger, well-defined objects.",
+    #         key="text_filter_toggle",
+    #         disabled=not ground_status['available']
+    #     )
+    #     st.session_state["text_filter_enabled"] = text_filter_enabled
 
-        if text_filter_enabled:
-            st.info("Text filtering is experimental. If GroundingDINO finds 0 regions, all YOLO boxes will be kept (fallback mode).")
-        text_prompt = st.text_input(
-            "Text prompt (e.g., 'stinkbug')",
-            value=st.session_state.get("text_prompt", "stinkbug"),
-            max_chars=80,
-            disabled=not ground_status['available']
-        )
-        st.session_state["text_prompt"] = text_prompt
+    #     if text_filter_enabled:
+    #         st.info("Text filtering is experimental. If GroundingDINO finds 0 regions, all YOLO boxes will be kept (fallback mode).")
+    #     text_prompt = st.text_input(
+    #         "Text prompt (e.g., 'stinkbug')",
+    #         value=st.session_state.get("text_prompt", "stinkbug"),
+    #         max_chars=80,
+    #         disabled=not ground_status['available']
+    #     )
+    #     st.session_state["text_prompt"] = text_prompt
 
-        iou_threshold = st.slider(
-            "IoU threshold for text filter",
-            min_value=0.1, max_value=0.9, value=float(st.session_state.get("iou_threshold", 0.5)), step=0.05,
-            help="Minimum IoU between YOLO box and text-prompt box to keep detection.",
-            disabled=not ground_status['available']
-        )
-        st.session_state["iou_threshold"] = iou_threshold
+    #     iou_threshold = st.slider(
+    #         "IoU threshold for text filter",
+    #         min_value=0.1, max_value=0.9, value=float(st.session_state.get("iou_threshold", 0.5)), step=0.05,
+    #         help="Minimum IoU between YOLO box and text-prompt box to keep detection.",
+    #         disabled=not ground_status['available']
+    #     )
+    #     st.session_state["iou_threshold"] = iou_threshold
 
-        if text_filter_enabled and ground_status['available']:
-            st.caption("ℹLower IoU = stricter filtering (fewer boxes kept). Adjust if too many boxes are filtered out.")
+    #     if text_filter_enabled and ground_status['available']:
+    #         st.caption("ℹLower IoU = stricter filtering (fewer boxes kept). Adjust if too many boxes are filtered out.")
 
     uploaded_files = st.file_uploader(
         "Upload RBSB images (multiple files allowed)", type=["jpg", "jpeg", "png"], accept_multiple_files=True
