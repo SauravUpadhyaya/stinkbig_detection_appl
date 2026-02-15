@@ -16,7 +16,7 @@ from streamlit_autorefresh import st_autorefresh
 from ultralytics import YOLO
 import plotly.io as pio
 from sam2_verification import get_sam2_verifier
-import ollama
+
 import plotly.express as px
 
 BASE_DIR = Path.cwd()
