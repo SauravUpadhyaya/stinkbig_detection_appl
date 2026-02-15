@@ -4212,26 +4212,48 @@ JSON:"""
             # Handle specific location queries
             elif intent.get("query_type") == "specific_location" and intent.get("location"):
                 location = intent.get("location")
-                cursor.execute("""
-                    SELECT COUNT(*) as image_count, SUM(insect_count) as total_insects
-                    FROM reports 
-                    WHERE location = ?
-                """, (location,))
-                row = cursor.fetchone()
+                # cursor.execute("""
+                #     SELECT COUNT(*) as image_count, SUM(insect_count) as total_insects
+                #     FROM reports 
+                #     WHERE location = ?
+                # """, (location,))
+                # row = cursor.fetchone()
                 
-                if row and row[0] > 0:
-                    img_count, total_insects = row[0], row[1] or 0
-                    density = (total_insects / img_count * 100) if img_count > 0 else 0
+                # if row and row[0] > 0:
+                #     img_count, total_insects = row[0], row[1] or 0
+                #     density = (total_insects / img_count * 100) if img_count > 0 else 0
                     
-                    answer = f"**{location}** has **{total_insects} insects** across **{img_count} images**."
+                #     answer = f"**{location}** has **{total_insects} insects** across **{img_count} images**."
                     
-                    return {
-                        "answer": answer,
-                        "show_all_data": False,
-                        "validated": True,
-                        "source": "reports_table",
-                        "semantic_intent": intent
-                    }
+                #     return {
+                #         "answer": answer,
+                #         "show_all_data": False,
+                #         "validated": True,
+                #         "source": "reports_table",
+                #         "semantic_intent": intent
+                #     }
+
+                if location:
+                    cursor.execute("""
+                        SELECT COUNT(*) as image_count, SUM(insect_count) as total_insects
+                        FROM reports 
+                        WHERE LOWER(location) = LOWER(?)
+                    """, (location,))
+                    row = cursor.fetchone()
+                    
+                    if row and row[0] > 0:
+                        img_count, total_insects = row[0], row[1] or 0
+                        density = (total_insects / img_count * 100) if img_count > 0 else 0
+                        
+                        answer = f"**{location}** has **{total_insects} insects** across **{img_count} images**."
+                        
+                        return {
+                            "answer": answer,
+                            "show_all_data": False,
+                            "validated": True,
+                            "source": "reports_table",
+                            "semantic_intent": intent
+                        }
             
             # Handle count queries (total across all locations)
             elif intent.get("query_type") == "count":
