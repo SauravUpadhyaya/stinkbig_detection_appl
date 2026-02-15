@@ -1949,28 +1949,37 @@ def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
     backend = st.session_state.get("chat_backend", "ollama")
     
     if not client:
+        print(f"❌ No chat client available")
         return None
     
     try:
         if backend == "groq":
             # Groq API call
+            print(f"🔵 Calling Groq API with model mixtral-8x7b-32768")
             response = client.chat.completions.create(
                 model="mixtral-8x7b-32768",  # Free Groq model
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens
             )
-            return response.choices[0].message.content
+            result = response.choices[0].message.content
+            print(f"✅ Groq response received: {len(result)} chars")
+            return result
         else:
             # Ollama API call
+            print(f"🟢 Calling Ollama with model {model}")
             response = client.chat(
                 model=model,
                 messages=messages,
                 options={"temperature": temperature, "num_predict": max_tokens}
             )
-            return response['message']['content']
+            result = response['message']['content']
+            print(f"✅ Ollama response received: {len(result)} chars")
+            return result
     except Exception as e:
-        print(f"Chat completion error: {e}")
+        print(f"❌ Chat completion error ({backend}): {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -4302,6 +4311,10 @@ def render_chat_interface(location="main"):
         st.info("💬 Chat unavailable")
         st.caption("**Local:** Install Ollama and run `ollama serve` | **Cloud:** Add GROQ_API_KEY secret (free at console.groq.com)")
         return None
+    
+    # Debug: Show backend being used
+    backend = st.session_state.get("chat_backend", "unknown")
+    print(f"✅ Chat interface loaded - Backend: {backend}")
     
     # Initialize chat history
     if "messages" not in st.session_state:
