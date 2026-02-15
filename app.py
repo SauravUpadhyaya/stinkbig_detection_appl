@@ -1959,10 +1959,10 @@ def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
     
     try:
         if backend == "groq":
-            # Groq API call - using Mistral for consistency with local Ollama
-            print(f"🔵 Calling Groq with mistral-large")
+            # Groq API call - using Llama 3.1 70B (mistral not available on Groq)
+            print(f"🔵 Calling Groq with llama-3.1-70b-versatile")
             response = client.chat.completions.create(
-                model="mistral-large",  # Mistral Large on Groq (matches local Ollama Mistral)
+                model="llama-3.1-70b-versatile",  # Best available model on Groq (Mistral not available)
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens
