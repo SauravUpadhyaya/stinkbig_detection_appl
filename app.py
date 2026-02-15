@@ -1930,21 +1930,17 @@ def ensure_session_defaults():
             try:
                 st.session_state["ollama_client"] = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 st.session_state["chat_backend"] = "groq"
-                print("✅ Groq initialized successfully")
             except Exception as e:
-                print(f"❌ Groq init failed: {e}")
+                print(f"Groq init failed: {e}")
         # Fall back to Ollama (for local development)
         elif OLLAMA_AVAILABLE:
             try:
                 from ollama import Client
                 st.session_state["ollama_client"] = Client(host='http://localhost:11434')
                 st.session_state["chat_backend"] = "ollama"
-                print("✅ Ollama initialized successfully")
             except Exception as e:
-                print(f"❌ Ollama init failed: {e}")
+                print(f"Ollama init failed: {e}")
                 st.session_state["ollama_client"] = None
-        else:
-            print(f"⚠️ No chat backend available - GROQ_AVAILABLE={GROQ_AVAILABLE}, secrets={list(st.secrets.keys()) if hasattr(st, 'secrets') else 'none'}")
 
 
 def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
@@ -4731,77 +4727,77 @@ def main():
 
                                 # Validate response grounding
                                 is_grounded, warning = validate_response_grounding(ai_response, user_input, get_response_context())
-                            if not is_grounded:
-                                st.warning(warning)
+                                if not is_grounded:
+                                    st.warning(warning)
 
-                            # Retrieve all gallery items once for efficient lookup
-                            all_gallery_items = {item['image_name']: {'image_bytes': item['image_bytes'], 'location': item['location'], 'timestamp': item['timestamp']} for item in get_gallery_data()}
+                                # Retrieve all gallery items once for efficient lookup
+                                all_gallery_items = {item['image_name']: {'image_bytes': item['image_bytes'], 'location': item['location'], 'timestamp': item['timestamp']} for item in get_gallery_data()}
 
-                            # Define the regex pattern for the image tag and optional trailing text (caption)
-                            # Group 1: full tag string e.g., [DISPLAY_IMAGE:image.jpg]
-                            # Group 2: image_name e.g., image.jpg
-                            # Group 3: potential_caption_text (any text after the tag, before next tag or end of string)
-                            image_tag_with_caption_pattern = r"(\[DISPLAY_IMAGE:([^\]]+?)\])\s*(.*?)(?=\[DISPLAY_IMAGE:|$)"
+                                # Define the regex pattern for the image tag and optional trailing text (caption)
+                                # Group 1: full tag string e.g., [DISPLAY_IMAGE:image.jpg]
+                                # Group 2: image_name e.g., image.jpg
+                                # Group 3: potential_caption_text (any text after the tag, before next tag or end of string)
+                                image_tag_with_caption_pattern = r"(\[DISPLAY_IMAGE:([^\]]+?)\])\s*(.*?)(?=\[DISPLAY_IMAGE:|$)"
 
-                            processed_ollama_output = []
-                            last_match_end = 0
+                                processed_ollama_output = []
+                                last_match_end = 0
 
-                            # Find all matches of the image tag with potential trailing caption
-                            for match in re.finditer(image_tag_with_caption_pattern, ai_response):
-                                # Add any text that appeared before this match as a separate text message
-                                text_before_match = ai_response[last_match_end : match.start()].strip()
-                                if text_before_match:
-                                    processed_ollama_output.append({"type": "text", "content": text_before_match})
+                                # Find all matches of the image tag with potential trailing caption
+                                for match in re.finditer(image_tag_with_caption_pattern, ai_response):
+                                    # Add any text that appeared before this match as a separate text message
+                                    text_before_match = ai_response[last_match_end : match.start()].strip()
+                                    if text_before_match:
+                                        processed_ollama_output.append({"type": "text", "content": text_before_match})
 
-                                full_tag_string = match.group(1) # e.g., [DISPLAY_IMAGE:image.jpg]
-                                image_name = match.group(2).strip() # e.g., image.jpg
-                                potential_caption_text = match.group(3).strip() # any text after the tag, before next tag or end
+                                    full_tag_string = match.group(1) # e.g., [DISPLAY_IMAGE:image.jpg]
+                                    image_name = match.group(2).strip() # e.g., image.jpg
+                                    potential_caption_text = match.group(3).strip() # any text after the tag, before next tag or end
 
-                                image_info = all_gallery_items.get(image_name)
+                                    image_info = all_gallery_items.get(image_name)
 
-                                if image_info and image_info['image_bytes']: # Ensure image exists and has bytes
-                                    # Create a comprehensive caption for display using image info and AI's text
-                                    caption_for_display = f"Image: {image_name}"
-                                    if image_info.get('location'):
-                                        caption_for_display += f" from {image_info['location']}"
-                                    if image_info.get('timestamp'):
-                                        caption_for_display += f" captured at {image_info['timestamp']}"
-                                    if potential_caption_text:
-                                        caption_for_display += f" - {potential_caption_text}"
+                                    if image_info and image_info['image_bytes']: # Ensure image exists and has bytes
+                                        # Create a comprehensive caption for display using image info and AI's text
+                                        caption_for_display = f"Image: {image_name}"
+                                        if image_info.get('location'):
+                                            caption_for_display += f" from {image_info['location']}"
+                                        if image_info.get('timestamp'):
+                                            caption_for_display += f" captured at {image_info['timestamp']}"
+                                        if potential_caption_text:
+                                            caption_for_display += f" - {potential_caption_text}"
 
-                                    processed_ollama_output.append({
-                                        "type": "image",
-                                        "image_data": image_info['image_bytes'],
-                                        "caption": caption_for_display,
-                                        "content": "" # All textual content for the image is in the 'caption'
-                                    })
-                                else:
-                                    # If image not found or no bytes, treat the whole matched string as text
-                                    not_found_message = f" (Image '{image_name}' not found or invalid.)" if not image_info else ""
-                                    text_content = f"{full_tag_string} {potential_caption_text}{not_found_message}".strip()
-                                    processed_ollama_output.append({"type": "text", "content": text_content})
+                                        processed_ollama_output.append({
+                                            "type": "image",
+                                            "image_data": image_info['image_bytes'],
+                                            "caption": caption_for_display,
+                                            "content": "" # All textual content for the image is in the 'caption'
+                                        })
+                                    else:
+                                        # If image not found or no bytes, treat the whole matched string as text
+                                        not_found_message = f" (Image '{image_name}' not found or invalid.)" if not image_info else ""
+                                        text_content = f"{full_tag_string} {potential_caption_text}{not_found_message}".strip()
+                                        processed_ollama_output.append({"type": "text", "content": text_content})
 
-                                last_match_end = match.end()
+                                    last_match_end = match.end()
 
-                            # Add any remaining text after the last image tag
-                            remaining_text = ai_response[last_match_end:].strip()
-                            if remaining_text:
-                                processed_ollama_output.append({"type": "text", "content": remaining_text})
+                                # Add any remaining text after the last image tag
+                                remaining_text = ai_response[last_match_end:].strip()
+                                if remaining_text:
+                                    processed_ollama_output.append({"type": "text", "content": remaining_text})
 
-                            # Display parts and store in session state
-                            for part in processed_ollama_output:
-                                if part["type"] == "text" and part["content"]:
-                                    st.markdown(part["content"])
-                                    st.session_state.messages.append({"role": "assistant", "content": part["content"], "type": "text", "response_type": "ollama"})
-                                elif part["type"] == "image":
-                                    st.image(part["image_data"], caption=part["caption"], use_container_width=True)
-                                    # For image messages, the 'content' field in session state is empty,
-                                    # as the full descriptive text is handled by 'caption' of st.image.
-                                    st.session_state.messages.append({"role": "assistant", "content": part["content"], "type": "image", "image_data": part["image_data"], "caption": part["caption"], "response_type": "ollama"})
+                                # Display parts and store in session state
+                                for part in processed_ollama_output:
+                                    if part["type"] == "text" and part["content"]:
+                                        st.markdown(part["content"])
+                                        st.session_state.messages.append({"role": "assistant", "content": part["content"], "type": "text", "response_type": "ollama"})
+                                    elif part["type"] == "image":
+                                        st.image(part["image_data"], caption=part["caption"], use_container_width=True)
+                                        # For image messages, the 'content' field in session state is empty,
+                                        # as the full descriptive text is handled by 'caption' of st.image.
+                                        st.session_state.messages.append({"role": "assistant", "content": part["content"], "type": "image", "image_data": part["image_data"], "caption": part["caption"], "response_type": "ollama"})
 
-                            # Show feedback for the latest assistant message from this response
-                            if st.session_state.messages:
-                                show_feedback_buttons(len(st.session_state.messages) - 1)
+                                # Show feedback for the latest assistant message from this response
+                                if st.session_state.messages:
+                                    show_feedback_buttons(len(st.session_state.messages) - 1)
 
                         except ollama.ResponseError as e:
                             ai_response_error = f"Error: {e}. Failed to get response from Ollama. Make sure 'llama2' model is pulled."
