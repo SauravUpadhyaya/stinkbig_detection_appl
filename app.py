@@ -2037,11 +2037,12 @@ def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
     try:
         if backend == "groq":
             # Try multiple Groq models in case one is deprecated
+            # These are the latest models as of Feb 2026
             groq_models = [
-                "llama-3.2-70b-versatile",      # Latest LLama 3.2
-                "llama-3.2-11b-vision-preview",  # Smaller but fast
-                "gemma2-9b-it",                  # Google's Gemma 2
-                "gemma-7b-it"                    # Smaller Gemma
+                "llama-3.3-70b-versatile",       # Latest LLama 3.3 (recommended)
+                "llama-3.3-70b-specdec",         # LLama 3.3 with spec decode
+                "llama-3.2-90b-vision-preview",  # LLama 3.2 with vision
+                "mixtral-8x7b-32768"             # Mixtral (if still available)
             ]
             
             response = None
