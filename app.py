@@ -1030,69 +1030,146 @@ Answer:"""
             }
 
 def init_db() -> None:
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                email TEXT NOT NULL,
-                password_hash TEXT NOT NULL
+    """Initialize database with corruption handling for Streamlit Cloud"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    email TEXT NOT NULL,
+                    password_hash TEXT NOT NULL
+                )
+                """
             )
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                username TEXT NOT NULL,
-                report_date TEXT NOT NULL,
-                location TEXT NOT NULL,
-                image_name TEXT NOT NULL,
-                insect_count INTEGER NOT NULL,
-                priority TEXT DEFAULT 'Normal',
-                FOREIGN KEY (user_id) REFERENCES users (id)
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    username TEXT NOT NULL,
+                    report_date TEXT NOT NULL,
+                    location TEXT NOT NULL,
+                    image_name TEXT NOT NULL,
+                    insect_count INTEGER NOT NULL,
+                    priority TEXT DEFAULT 'Normal',
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+                """
             )
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS gallery (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                image_name TEXT NOT NULL,
-                location TEXT NOT NULL,
-                image_bytes BLOB NOT NULL,
-                created_at TEXT NOT NULL
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS gallery (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    image_name TEXT NOT NULL,
+                    location TEXT NOT NULL,
+                    image_bytes BLOB NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
             )
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS image_index (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                image_name TEXT UNIQUE NOT NULL,
-                location TEXT,
-                created_at TEXT,
-                embedding TEXT NOT NULL -- JSON-encoded float list
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS image_index (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    image_name TEXT UNIQUE NOT NULL,
+                    location TEXT,
+                    created_at TEXT,
+                    embedding TEXT NOT NULL -- JSON-encoded float list
+                )
+                """
             )
-            """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS feedback (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_query TEXT NOT NULL,
-                assistant_response TEXT NOT NULL,
-                label TEXT NOT NULL, -- 'yes' or 'no'
-                response_type TEXT NOT NULL, -- 'fast_answer', 'fast_image', 'ollama', 'error'
-                created_at TEXT NOT NULL,
-                username TEXT
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS feedback (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_query TEXT NOT NULL,
+                    assistant_response TEXT NOT NULL,
+                    label TEXT NOT NULL, -- 'yes' or 'no'
+                    response_type TEXT NOT NULL, -- 'fast_answer', 'fast_image', 'ollama', 'error'
+                    created_at TEXT NOT NULL,
+                    username TEXT
+                )
+                """
             )
-            """
-        )
-        conn.commit()
+            conn.commit()
+    except sqlite3.DatabaseError as e:
+        # Database is corrupted - delete it and recreate
+        print(f"⚠️ Database corrupted: {e}")
+        print(f"🔄 Deleting corrupted database and recreating...")
+        if DB_PATH.exists():
+            DB_PATH.unlink()
+        # Retry initialization
+        try:
+            with sqlite3.connect(DB_PATH) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        email TEXT NOT NULL,
+                        password_hash TEXT NOT NULL
+                    )
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS reports (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        username TEXT NOT NULL,
+                        report_date TEXT NOT NULL,
+                        location TEXT NOT NULL,
+                        image_name TEXT NOT NULL,
+                        insect_count INTEGER NOT NULL,
+                        priority TEXT DEFAULT 'Normal',
+                        FOREIGN KEY (user_id) REFERENCES users (id)
+                    )
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS gallery (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        image_name TEXT NOT NULL,
+                        location TEXT NOT NULL,
+                        image_bytes BLOB NOT NULL,
+                        created_at TEXT NOT NULL
+                    )
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS image_index (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        image_name TEXT UNIQUE NOT NULL,
+                        location TEXT,
+                        created_at TEXT,
+                        embedding TEXT NOT NULL -- JSON-encoded float list
+                    )
+                    """
+                )
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS feedback (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_query TEXT NOT NULL,
+                        assistant_response TEXT NOT NULL,
+                        label TEXT NOT NULL, -- 'yes' or 'no'
+                        response_type TEXT NOT NULL, -- 'fast_answer', 'fast_image', 'ollama', 'error'
+                        created_at TEXT NOT NULL,
+                        username TEXT
+                    )
+                    """
+                )
+                conn.commit()
+                print(f"✅ Database recreated successfully")
+        except Exception as retry_error:
+            print(f"❌ Failed to recreate database: {retry_error}")
+            raise
 
 
 def hash_password(password: str) -> str:
