@@ -4540,9 +4540,9 @@ def render_chat_interface(location="main"):
                 image_bytes = uploaded_image.getvalue()
                 insect_count, annotated_bytes, metadata = count_insects(
                     image_bytes,
-                    use_sam2_verification=use_sam2_chat,
-                    text_filter_enabled=text_filter_chat,
-                    text_prompt=text_prompt_chat,
+                    # use_sam2_verification=use_sam2_chat,
+                    # text_filter_enabled=text_filter_chat,
+                    # text_prompt=text_prompt_chat,
                     iou_threshold=0.5
                 )
 
