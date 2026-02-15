@@ -38,77 +38,6 @@ BASE_DIR = Path.cwd()
 load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
 
 
-def download_sam2_checkpoint():
-    """Download SAM 2 checkpoint if not present"""
-    import urllib.request
-    
-    checkpoint_dir = BASE_DIR / "checkpoints"
-    checkpoint_dir.mkdir(exist_ok=True)
-    
-    sam2_checkpoint = checkpoint_dir / "sam2_hiera_small.pt"
-    
-    if sam2_checkpoint.exists():
-        print(f"SAM 2 checkpoint already exists at {sam2_checkpoint}")
-        return True
-    
-    try:
-        url = "https://dl.fbaipublicfiles.com/segment_anything_2/072824/sam2_hiera_small.pt"
-        print(f"📥 Downloading SAM 2 checkpoint from {url}...")
-        print(f"   This is a ~176MB file, please wait...")
-        
-        # Download with progress
-        def reporthook(count, block_size, total_size):
-            if total_size > 0:
-                percent = min(100, count * block_size * 100 / total_size)
-                if count % 50 == 0:  # Print every 50 blocks
-                    print(f"   Progress: {percent:.1f}%")
-        
-        urllib.request.urlretrieve(url, sam2_checkpoint, reporthook=reporthook)
-        print(f"✅ SAM 2 checkpoint downloaded successfully to {sam2_checkpoint}")
-        return True
-        
-    except Exception as e:
-        print(f"Failed to download SAM 2 checkpoint: {e}")
-        print(f"   You can manually download from: {url}")
-        print(f"   Save it to: {sam2_checkpoint}")
-        return False
-
-
-def download_grounding_dino_checkpoint():
-    """Download GroundingDINO checkpoint if not present"""
-    import urllib.request
-    
-    checkpoint_dir = BASE_DIR / "checkpoints"
-    checkpoint_dir.mkdir(exist_ok=True)
-    
-    gdino_checkpoint = checkpoint_dir / "groundingdino_swint_ogc.pth"
-    
-    if gdino_checkpoint.exists():
-        print(f"GroundingDINO checkpoint already exists at {gdino_checkpoint}")
-        return True
-    
-    try:
-        url = "https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth"
-        print(f"📥 Downloading GroundingDINO checkpoint from {url}...")
-        print(f"   This is a ~167MB file, please wait...")
-        
-        # Download with progress
-        def reporthook(count, block_size, total_size):
-            if total_size > 0:
-                percent = min(100, count * block_size * 100 / total_size)
-                if count % 50 == 0:  # Print every 50 blocks
-                    print(f"   Progress: {percent:.1f}%")
-        
-        urllib.request.urlretrieve(url, gdino_checkpoint, reporthook=reporthook)
-        print(f"GroundingDINO checkpoint downloaded successfully to {gdino_checkpoint}")
-        return True
-        
-    except Exception as e:
-        print(f"Failed to download GroundingDINO checkpoint: {e}")
-        print(f"   You can manually download from: {url}")
-        print(f"   Save it to: {gdino_checkpoint}")
-        return False
-
 
 DB_PATH = BASE_DIR / "stinkbug.db"
 MODEL_PATH = BASE_DIR / "yolov8m_cbam_asff_finetuned.pt"
@@ -2001,17 +1930,21 @@ def ensure_session_defaults():
             try:
                 st.session_state["ollama_client"] = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 st.session_state["chat_backend"] = "groq"
+                print("✅ Groq initialized successfully")
             except Exception as e:
-                print(f"Groq init failed: {e}")
+                print(f"❌ Groq init failed: {e}")
         # Fall back to Ollama (for local development)
         elif OLLAMA_AVAILABLE:
             try:
                 from ollama import Client
                 st.session_state["ollama_client"] = Client(host='http://localhost:11434')
                 st.session_state["chat_backend"] = "ollama"
+                print("✅ Ollama initialized successfully")
             except Exception as e:
-                print(f"Ollama init failed: {e}")
+                print(f"❌ Ollama init failed: {e}")
                 st.session_state["ollama_client"] = None
+        else:
+            print(f"⚠️ No chat backend available - GROQ_AVAILABLE={GROQ_AVAILABLE}, secrets={list(st.secrets.keys()) if hasattr(st, 'secrets') else 'none'}")
 
 
 def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
