@@ -17,6 +17,21 @@ from ultralytics import YOLO
 import plotly.io as pio
 from sam2_verification import get_sam2_verifier
 
+# Try to import ollama (for local), groq (for cloud)
+try:
+    import ollama
+    OLLAMA_AVAILABLE = True
+except ImportError:
+    OLLAMA_AVAILABLE = False
+    ollama = None
+
+try:
+    from groq import Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    GROQ_AVAILABLE = False
+    Groq = None
+
 import plotly.express as px
 
 BASE_DIR = Path.cwd()
@@ -33,7 +48,7 @@ def download_sam2_checkpoint():
     sam2_checkpoint = checkpoint_dir / "sam2_hiera_small.pt"
     
     if sam2_checkpoint.exists():
-        print(f"✅ SAM 2 checkpoint already exists at {sam2_checkpoint}")
+        print(f"SAM 2 checkpoint already exists at {sam2_checkpoint}")
         return True
     
     try:
@@ -53,7 +68,7 @@ def download_sam2_checkpoint():
         return True
         
     except Exception as e:
-        print(f"❌ Failed to download SAM 2 checkpoint: {e}")
+        print(f"Failed to download SAM 2 checkpoint: {e}")
         print(f"   You can manually download from: {url}")
         print(f"   Save it to: {sam2_checkpoint}")
         return False
@@ -69,7 +84,7 @@ def download_grounding_dino_checkpoint():
     gdino_checkpoint = checkpoint_dir / "groundingdino_swint_ogc.pth"
     
     if gdino_checkpoint.exists():
-        print(f"✅ GroundingDINO checkpoint already exists at {gdino_checkpoint}")
+        print(f"GroundingDINO checkpoint already exists at {gdino_checkpoint}")
         return True
     
     try:
@@ -85,11 +100,11 @@ def download_grounding_dino_checkpoint():
                     print(f"   Progress: {percent:.1f}%")
         
         urllib.request.urlretrieve(url, gdino_checkpoint, reporthook=reporthook)
-        print(f"✅ GroundingDINO checkpoint downloaded successfully to {gdino_checkpoint}")
+        print(f"GroundingDINO checkpoint downloaded successfully to {gdino_checkpoint}")
         return True
         
     except Exception as e:
-        print(f"❌ Failed to download GroundingDINO checkpoint: {e}")
+        print(f"Failed to download GroundingDINO checkpoint: {e}")
         print(f"   You can manually download from: {url}")
         print(f"   Save it to: {gdino_checkpoint}")
         return False
@@ -1979,14 +1994,55 @@ def ensure_session_defaults():
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
     
-    # Initialize Ollama client if not already done
+    # Initialize chat client (Ollama for local, Groq for cloud)
     if st.session_state["ollama_client"] is None:
-        try:
-            from ollama import Client
-            st.session_state["ollama_client"] = Client(host='http://localhost:11434')
-        except Exception as e:
-            st.warning(f"Could not connect to Ollama: {e}")
-            st.session_state["ollama_client"] = None
+        # Try Groq first (for Streamlit Cloud)
+        if GROQ_AVAILABLE and "GROQ_API_KEY" in st.secrets:
+            try:
+                st.session_state["ollama_client"] = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                st.session_state["chat_backend"] = "groq"
+            except Exception as e:
+                print(f"Groq init failed: {e}")
+        # Fall back to Ollama (for local development)
+        elif OLLAMA_AVAILABLE:
+            try:
+                from ollama import Client
+                st.session_state["ollama_client"] = Client(host='http://localhost:11434')
+                st.session_state["chat_backend"] = "ollama"
+            except Exception as e:
+                print(f"Ollama init failed: {e}")
+                st.session_state["ollama_client"] = None
+
+
+def chat_completion(messages, model="mistral", temperature=0.7, max_tokens=500):
+    """Unified chat function that works with both Ollama and Groq"""
+    client = st.session_state.get("ollama_client")
+    backend = st.session_state.get("chat_backend", "ollama")
+    
+    if not client:
+        return None
+    
+    try:
+        if backend == "groq":
+            # Groq API call
+            response = client.chat.completions.create(
+                model="mixtral-8x7b-32768",  # Free Groq model
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            return response.choices[0].message.content
+        else:
+            # Ollama API call
+            response = client.chat(
+                model=model,
+                messages=messages,
+                options={"temperature": temperature, "num_predict": max_tokens}
+            )
+            return response['message']['content']
+    except Exception as e:
+        print(f"Chat completion error: {e}")
+        return None
 
 
 def logout():
@@ -3966,20 +4022,20 @@ Return ONLY valid JSON, no other text:
 JSON:"""
 
         try:
-            response = st.session_state["ollama_client"].chat(
-                model='mistral',
+            understanding_text = chat_completion(
                 messages=[{'role': 'user', 'content': understanding_prompt}],
-                options={"temperature": 0.1, "num_predict": 150}
+                temperature=0.1,
+                max_tokens=150
             )
             
-            # Parse LLM understanding
-            understanding_text = response['message']['content'].strip()
-            # Extract JSON from response
-            import re
-            json_match = re.search(r'\{.*\}', understanding_text, re.DOTALL)
-            if json_match:
-                intent = json.loads(json_match.group())
-                print(f"🧠 Semantic Understanding (LLM): {intent}")  # Debug
+            if understanding_text:
+                # Parse LLM understanding
+                # Extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', understanding_text, re.DOTALL)
+                if json_match:
+                    intent = json.loads(json_match.group())
+                    print(f"🧠 Semantic Understanding (LLM): {intent}")  # Debug
         except Exception as e:
             print(f"Semantic understanding failed: {e}")
             intent = None
@@ -4312,6 +4368,12 @@ def render_chat_interface(location="main"):
     """
     st.subheader("Chat")
     
+    # Check if chat is available
+    if not st.session_state.get("ollama_client"):
+        st.info("💬 Chat unavailable")
+        st.caption("**Local:** Install Ollama and run `ollama serve` | **Cloud:** Add GROQ_API_KEY secret (free at console.groq.com)")
+        return None
+    
     # Initialize chat history
     if "messages" not in st.session_state:
         st.session_state["messages"] = []
@@ -4499,13 +4561,6 @@ def render_chat_interface(location="main"):
 
 def main():
     st.set_page_config(page_title="Redbanded Stink Bug Analytics", page_icon="🐞", layout="wide")
-    
-    # Download checkpoints on first run
-    if "checkpoints_downloaded" not in st.session_state:
-        download_sam2_checkpoint()
-        download_grounding_dino_checkpoint()
-        st.session_state["checkpoints_downloaded"] = True
-    
     ensure_session_defaults()
     init_db()
     inject_global_styles()
@@ -4666,19 +4721,8 @@ def main():
                 with st.chat_message("assistant", avatar="🤖"):
                     with st.spinner("🤖 Agent analyzing and planning..."):
                         try:
-                            # Try mistral first, fallback to llama2
+                            # Agent uses the same backend as regular chat
                             agent_model = 'mistral'
-                            try:
-                                # Test if mistral is available
-                                st.session_state["ollama_client"].chat(
-                                    model='mistral',
-                                    messages=[{'role': 'user', 'content': 'test'}],
-                                    options={"num_predict": 1}
-                                )
-                            except:
-                                # Mistral not available, use llama2
-                                agent_model = 'llama2'
-                                print(f"  Mistral not found, using llama2 instead")
                             
                             # Initialize agent
                             agent = AdvancedAgent(
@@ -4741,30 +4785,19 @@ def main():
                 if st.session_state["ollama_client"]:
                     with st.spinner("Thinking..."):
                         prompt = generate_ollama_prompt(user_input)
-                        print(f"\n--- PROMPT TO OLLAMA ---\n{prompt}\n--- END PROMPT ---\n") # Debug print
+                        print(f"\n--- PROMPT TO LLM ---\n{prompt}\n--- END PROMPT ---\n") # Debug print
                         try:
-                            # Try with Mistral first (better instruction following), fallback to llama2
-                            model_to_use = 'mistral'
-                            try:
-                                response = st.session_state["ollama_client"].chat(
-                                    model=model_to_use,
-                                    messages=[{'role': 'user', 'content': prompt}],
-                                    options={"temperature": 0.1, "num_predict": 512, "num_ctx": 4096}
-                                )
-                            except:
-                                # Fallback to llama2 if mistral not available
-                                model_to_use = 'llama2'
-                                response = st.session_state["ollama_client"].chat(
-                                    model=model_to_use,
-                                    messages=[{'role': 'user', 'content': prompt}],
-                                    options={"temperature": 0.1, "num_predict": 512, "num_ctx": 4096}
-                                )
+                            ai_response = chat_completion(
+                                messages=[{'role': 'user', 'content': prompt}],
+                                temperature=0.1,
+                                max_tokens=512
+                            )
                             
-                            ai_response = response['message']['content']
-                            print(f"\n--- RAW OLLAMA RESPONSE (Model: {model_to_use}) ---\n{ai_response}\n--- END RAW OLLAMA RESPONSE ---\n") # Debug print
+                            if ai_response:
+                                print(f"\n--- RAW LLM RESPONSE ---\n{ai_response}\n--- END RAW RESPONSE ---\n") # Debug print
 
-                            # Validate response grounding
-                            is_grounded, warning = validate_response_grounding(ai_response, user_input, get_response_context())
+                                # Validate response grounding
+                                is_grounded, warning = validate_response_grounding(ai_response, user_input, get_response_context())
                             if not is_grounded:
                                 st.warning(warning)
 
